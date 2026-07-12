@@ -1,26 +1,24 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg: #FFFFFF;
+  --surface: #FAFBFC;
+  --border: #ECEEF2;
+  --ink: #0E1116;
+  --ink-2: #4B525C;
+  --accent: #2B54F0;
+  --accent-weak: #ECEFFE;
+  --shadow-sm: 0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.05);
+  --r-card: 14px;
+  --r-btn: 10px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Figtree', system-ui, sans-serif;
+}
+
+.timer-ring {
+  transition: stroke-dashoffset 0.3s ease;
 }
