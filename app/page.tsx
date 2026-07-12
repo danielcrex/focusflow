@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, type CSSProperties } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ParticleField from './ParticleField';
 
 type TimerState = 'idle' | 'running' | 'paused' | 'finished';
 
@@ -11,25 +12,6 @@ const MAX_MINUTES = 180;
 
 const RING_RADIUS = 54;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
-
-// The running animation is a train of particle "waves": each wave is a full
-// ring of dots that share a delay/duration so they expand together, and the
-// waves are staggered in time to emit continuously. Travel is in vmax so the
-// waves reach the edge of the screen on any viewport.
-const WAVE_COUNT = 4;
-const PARTICLES_PER_WAVE = 26;
-const WAVE_DURATION = 7;
-const PARTICLES = Array.from({ length: WAVE_COUNT }, (_, w) => {
-  const delay = (w * WAVE_DURATION) / WAVE_COUNT;
-  const travel = 58 + w * 5; // vmax — outer waves reach a little further
-  const offset = (w % 2) * (180 / PARTICLES_PER_WAVE); // stagger alternating rings
-  return Array.from({ length: PARTICLES_PER_WAVE }, (_, j) => ({
-    angle: j * (360 / PARTICLES_PER_WAVE) + offset,
-    delay,
-    duration: WAVE_DURATION,
-    travel,
-  }));
-}).flat();
 
 export default function FocusFlow() {
   const [durationMin, setDurationMin] = useState(DEFAULT_MINUTES);
@@ -47,6 +29,8 @@ export default function FocusFlow() {
     parsedCustom >= MIN_MINUTES &&
     parsedCustom <= MAX_MINUTES;
   const canStart = !customMode || customValid;
+
+  const clockRef = useRef<HTMLDivElement>(null);
 
   // Latest time read by the interval callback, kept in a ref so the tick effect
   // can stay keyed on `state` alone.
@@ -113,34 +97,22 @@ export default function FocusFlow() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--ink)] flex items-center justify-center p-6">
+      <ParticleField originRef={clockRef} active={state === 'running'} />
+
       {/* Brand */}
-      <div className="absolute top-6 left-6 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-[var(--accent)]" />
+      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+        <a
+          href="https://danielcrex.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Visit danielcrex.com"
+          className="block w-8 h-8 rounded-xl bg-[var(--accent)] hover:opacity-90 transition-opacity"
+        />
         <span className="font-semibold tracking-tight text-xl">FocusFlow</span>
       </div>
 
-      <div className="w-full max-w-md text-center">
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto mb-10">
-          {/* Waves of particles radiating to the edges of the screen */}
-          {state === 'running' && (
-            <div className="ff-ripple-layer pointer-events-none absolute inset-0" aria-hidden="true">
-              {PARTICLES.map((p, i) => (
-                <span
-                  key={i}
-                  className="ff-particle"
-                  style={
-                    {
-                      '--angle': `${p.angle}deg`,
-                      '--travel': `${p.travel}vmax`,
-                      animationDelay: `${p.delay}s`,
-                      animationDuration: `${p.duration}s`,
-                    } as CSSProperties
-                  }
-                />
-              ))}
-            </div>
-          )}
-
+      <div className="relative z-10 w-full max-w-md text-center">
+        <div ref={clockRef} className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto mb-10">
           <svg className="w-full h-full -rotate-90 relative" viewBox="0 0 120 120" aria-hidden="true">
             <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--border)" strokeWidth="7" />
             <circle

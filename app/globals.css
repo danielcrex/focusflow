@@ -47,48 +47,9 @@ body {
   }
 }
 
-/* Running animation: a train of particle waves radiating from the ring out to
-   the edges of the screen. Each wave is a ring of dots sharing a delay so they
-   expand together; the motion is slow and eases out over a long tail, like a
-   calm wave, fading before it reaches the edge. */
-.ff-particle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  border-radius: 9999px;
-  background: var(--accent);
-  opacity: 0;
-  transform-origin: center;
-  animation-name: ff-wave;
-  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
-  animation-iteration-count: infinite;
-  will-change: transform, opacity;
-}
-
-@keyframes ff-wave {
-  0% {
-    transform: rotate(var(--angle)) translateY(-140px) scale(0.8);
-    opacity: 0;
-  }
-  8% {
-    opacity: 0.55;
-  }
-  65% {
-    opacity: 0.22;
-  }
-  100% {
-    transform: rotate(var(--angle)) translateY(calc(-1 * var(--travel))) scale(0.5);
-    opacity: 0;
-  }
-}
+/* The running particle field is drawn on a canvas (see ParticleField.tsx). */
 
 @media (prefers-reduced-motion: reduce) {
-  .ff-ripple-layer {
-    display: none;
-  }
   .ff-tick {
     animation: none;
   }
