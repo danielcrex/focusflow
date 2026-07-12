@@ -1,25 +1,37 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type CSSProperties } from 'react';
 
 type TimerState = 'idle' | 'running' | 'paused' | 'finished';
 type Session = { id: number; time: string; note: string };
 
-const SESSION_MINUTES = 25;
-const SESSION_SECONDS = SESSION_MINUTES * 60;
+const DURATIONS = [15, 25, 45, 60] as const;
+const DEFAULT_MINUTES = 25;
 
 const RING_RADIUS = 54;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 const HISTORY_KEY = 'focusflow-history';
 
+// Particles that drift outward from the ring while a session runs. Angles are
+// spread around the circle; travel/delay/duration are varied for an organic,
+// water-like feel.
+const PARTICLES = Array.from({ length: 12 }, (_, i) => ({
+  angle: i * 30,
+  travel: 188 + (i % 3) * 20,
+  delay: (i % 4) * 0.9 + (i % 2) * 0.35,
+  duration: 3.8 + (i % 3) * 0.7,
+}));
+
 export default function FocusFlow() {
-  const [timeLeft, setTimeLeft] = useState(SESSION_SECONDS);
+  const [durationMin, setDurationMin] = useState(DEFAULT_MINUTES);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_MINUTES * 60);
   const [state, setState] = useState<TimerState>('idle');
   const [sessionNote, setSessionNote] = useState('');
   const [history, setHistory] = useState<Session[]>([]);
 
-  const progress = ((SESSION_SECONDS - timeLeft) / SESSION_SECONDS) * 100;
+  const totalSeconds = durationMin * 60;
+  const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
   // Load persisted history once on mount. Reading localStorage in an effect
   // (rather than a lazy useState initializer) keeps the server and first client
@@ -91,9 +103,13 @@ export default function FocusFlow() {
   const start = () => setState('running');
   const pause = () => setState('paused');
   const reset = () => {
-    setTimeLeft(SESSION_SECONDS);
+    setTimeLeft(totalSeconds);
     setState('idle');
     setSessionNote('');
+  };
+  const selectDuration = (min: number) => {
+    setDurationMin(min);
+    setTimeLeft(min * 60);
   };
 
   const formatTime = (seconds: number) => {
@@ -143,7 +159,30 @@ export default function FocusFlow() {
       <div className="flex-1 flex items-center justify-center p-6 lg:p-8">
         <div className="w-full max-w-md text-center">
           <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto mb-10">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+            {/* Water-ripple + particle field, active only while running */}
+            {state === 'running' && (
+              <div className="ff-ripple-layer pointer-events-none absolute inset-0" aria-hidden="true">
+                <span className="ff-ripple-ring" />
+                <span className="ff-ripple-ring" style={{ animationDelay: '1.4s' }} />
+                <span className="ff-ripple-ring" style={{ animationDelay: '2.8s' }} />
+                {PARTICLES.map((p, i) => (
+                  <span
+                    key={i}
+                    className="ff-particle"
+                    style={
+                      {
+                        '--angle': `${p.angle}deg`,
+                        '--travel': `${p.travel}px`,
+                        animationDelay: `${p.delay}s`,
+                        animationDuration: `${p.duration}s`,
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            <svg className="w-full h-full -rotate-90 relative" viewBox="0 0 120 120" aria-hidden="true">
               <circle cx="60" cy="60" r={RING_RADIUS} fill="none" stroke="var(--border)" strokeWidth="7" />
               <circle
                 cx="60"
@@ -172,6 +211,33 @@ export default function FocusFlow() {
               </div>
             </div>
           </div>
+
+          {/* Focus length selector — only before a session starts */}
+          {state === 'idle' && (
+            <div
+              className="flex justify-center gap-2 mb-8"
+              role="group"
+              aria-label="Focus length"
+            >
+              {DURATIONS.map((min) => {
+                const active = durationMin === min;
+                return (
+                  <button
+                    key={min}
+                    onClick={() => selectDuration(min)}
+                    aria-pressed={active}
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                      active
+                        ? 'bg-[var(--accent)] text-white border-[var(--accent)]'
+                        : 'border-[var(--border)] text-[var(--ink-2)] hover:border-[var(--accent)]'
+                    }`}
+                  >
+                    {min} min
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             {state === 'idle' && (
