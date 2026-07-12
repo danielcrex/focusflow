@@ -12,18 +12,24 @@ const MAX_MINUTES = 180;
 const RING_RADIUS = 54;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-// Particles that drift outward from the ring while a session runs. Angles are
-// spread evenly around the circle; travel/delay/duration are varied for an
-// organic, water-like feel. Slow durations keep the motion calm.
-const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
-  angle: i * 15,
-  travel: 230 + (i % 5) * 22,
-  delay: (i % 6) * 0.9 + (i % 2) * 0.4,
-  duration: 5.2 + (i % 4) * 0.6,
-}));
-
-// Staggered ripple rings, emitted continuously to form a calm wave train.
-const RIPPLES = [0, 1.2, 2.4, 3.6, 4.8];
+// The running animation is a train of particle "waves": each wave is a full
+// ring of dots that share a delay/duration so they expand together, and the
+// waves are staggered in time to emit continuously. Travel is in vmax so the
+// waves reach the edge of the screen on any viewport.
+const WAVE_COUNT = 4;
+const PARTICLES_PER_WAVE = 26;
+const WAVE_DURATION = 7;
+const PARTICLES = Array.from({ length: WAVE_COUNT }, (_, w) => {
+  const delay = (w * WAVE_DURATION) / WAVE_COUNT;
+  const travel = 58 + w * 5; // vmax — outer waves reach a little further
+  const offset = (w % 2) * (180 / PARTICLES_PER_WAVE); // stagger alternating rings
+  return Array.from({ length: PARTICLES_PER_WAVE }, (_, j) => ({
+    angle: j * (360 / PARTICLES_PER_WAVE) + offset,
+    delay,
+    duration: WAVE_DURATION,
+    travel,
+  }));
+}).flat();
 
 export default function FocusFlow() {
   const [durationMin, setDurationMin] = useState(DEFAULT_MINUTES);
@@ -31,7 +37,6 @@ export default function FocusFlow() {
   const [customText, setCustomText] = useState('30');
   const [timeLeft, setTimeLeft] = useState(DEFAULT_MINUTES * 60);
   const [state, setState] = useState<TimerState>('idle');
-  const [sessionNote, setSessionNote] = useState('');
 
   const totalSeconds = durationMin * 60;
   const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
@@ -44,7 +49,7 @@ export default function FocusFlow() {
   const canStart = !customMode || customValid;
 
   // Latest time read by the interval callback, kept in a ref so the tick effect
-  // can stay keyed on `state` alone (typing a note won't restart it).
+  // can stay keyed on `state` alone.
   const timeLeftRef = useRef(timeLeft);
   useEffect(() => {
     timeLeftRef.current = timeLeft;
@@ -89,7 +94,6 @@ export default function FocusFlow() {
   const reset = () => {
     setTimeLeft(totalSeconds);
     setState('idle');
-    setSessionNote('');
   };
 
   const formatTime = (seconds: number) => {
@@ -108,7 +112,7 @@ export default function FocusFlow() {
         : 'Ready to begin';
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[var(--bg)] text-[var(--ink)] flex items-center justify-center p-6">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--ink)] flex items-center justify-center p-6">
       {/* Brand */}
       <div className="absolute top-6 left-6 flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-[var(--accent)]" />
@@ -117,12 +121,9 @@ export default function FocusFlow() {
 
       <div className="w-full max-w-md text-center">
         <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto mb-10">
-          {/* Water-ripple + particle field, active only while running */}
+          {/* Waves of particles radiating to the edges of the screen */}
           {state === 'running' && (
             <div className="ff-ripple-layer pointer-events-none absolute inset-0" aria-hidden="true">
-              {RIPPLES.map((delay, i) => (
-                <span key={i} className="ff-ripple-ring" style={{ animationDelay: `${delay}s` }} />
-              ))}
               {PARTICLES.map((p, i) => (
                 <span
                   key={i}
@@ -130,7 +131,7 @@ export default function FocusFlow() {
                   style={
                     {
                       '--angle': `${p.angle}deg`,
-                      '--travel': `${p.travel}px`,
+                      '--travel': `${p.travel}vmax`,
                       animationDelay: `${p.delay}s`,
                       animationDuration: `${p.duration}s`,
                     } as CSSProperties
@@ -263,17 +264,6 @@ export default function FocusFlow() {
               Start New Session
             </button>
           )}
-        </div>
-
-        <div className="mt-10 max-w-xs mx-auto">
-          <input
-            type="text"
-            value={sessionNote}
-            onChange={(e) => setSessionNote(e.target.value)}
-            placeholder="What are you working on? (optional)"
-            aria-label="Session note"
-            className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r-btn)] px-5 py-3 text-sm focus:outline-none focus:border-[var(--accent)]"
-          />
         </div>
       </div>
     </div>
